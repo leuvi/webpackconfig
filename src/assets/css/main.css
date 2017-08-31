@@ -1,0 +1,6 @@
+@import 'common.css';
+
+#app {
+	font-size: 64px;
+	color: blue;
+}
