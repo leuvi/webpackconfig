@@ -1,6 +1,7 @@
 ### webpack config
 
-个人写的webpack基本配置  包括自定义postcss插件、webpack插件和loader开发，仅供参考！
+个人写的webpack基本配置  
+包括自定义postcss插件、webpack插件和loader开发，仅供参考！
 
 
 ### webpack.config.js
