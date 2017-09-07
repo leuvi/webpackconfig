@@ -1,4 +1,4 @@
-import './assets/css/main.css'
+import './assets/css/index.styl'
 import Img1 from './assets/img/1.jpg'
 import Img2 from './assets/img/2.jpg'
 
@@ -13,7 +13,7 @@ function start() {
 	img2.src = Img2
 
 	const p = document.createElement('p')
-	p.innerHTML = '苹果熊啊'
+	p.innerHTML = 'hello, webpack!'
 	app.appendChild(img1)
 	app.appendChild(img2)
 	app.appendChild(p)

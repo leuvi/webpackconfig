@@ -1,6 +1,6 @@
 ### webpack config
 
-个人写的webpack基本配置，包括自定义webpack插件和loader开发，仅供参考！
+个人写的webpack基本配置  包括自定义postcss插件、webpack插件和loader开发，仅供参考！
 
 
 ### webpack.config.js
@@ -19,7 +19,7 @@ const path = require('path')
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const CleanWebpackPlugin = require('clean-webpack-plugin')
-const BearWebpackPlugin = require('./BearWebpackPlugin')
+const BearWebpackPlugin = require('./plugins/BearWebpackPlugin')
 
 module.exports = {
 	devtool: 'inline-source-map',
@@ -27,18 +27,23 @@ module.exports = {
 		app: './src/index.js',
 	},
 	output: {
-		filename: '[name].bundle.js',
-		path: path.resolve(__dirname, 'dist')
-	},
-	devServer: {
-		contentBase: './dist',
-		hot: true
+		filename: '[name].bundle.js'
 	},
 	module: {
 		rules: [
 			{
-				test: /\.css$/,
-				use: ['style-loader', 'css-loader']
+				test: /\.styl$/,
+				use: [
+					'style-loader',
+					'css-loader',
+					{
+						loader: 'postcss-loader',
+						options: {
+							sourceMap: 'inline'
+						}
+					},
+					'stylus-loader'
+				]
 			},
 			{
 				test: /\.jsx$/,
@@ -57,12 +62,7 @@ module.exports = {
 			},
 			{
 				test: /\.(png|jpg|gif)$/,
-				use: [
-					{
-						loader: 'url-loader',
-						options: {limit: 60000}
-					}
-				]
+				use: ['url-loader']
 			},
 			{
 				test: /\.(woff|woff2|eot|ttf|otf)$/,
@@ -73,7 +73,7 @@ module.exports = {
 	//自定义loader别名
 	resolveLoader: {
 	    alias: {
-	        'bear-loader': require('path').resolve('./bear-loader'),
+	        'bear-loader': require('path').resolve('./plugins/bear-loader'),
 	    },
 	},
 	plugins: [
@@ -82,28 +82,10 @@ module.exports = {
 			template: './src/views/index.html'
 		}),
 		new webpack.HotModuleReplacementPlugin(),
-		new webpack.optimize.UglifyJsPlugin({
-			sourceMap: true
-		}),
 		//自定义插件
 		new BearWebpackPlugin()
 	]
 }
-
-
-/*
-npm i --save-dev 
-webpack 
-style-loader 
-css-loader 
-file-loader 
-url-loader
-html-webpack-plugin
-clean-webpack-plugin
-webpack-dev-server
-babel-loader babel-core babel-preset-env
-babel-plugin-dynamic-import-webpack //支持运行时import语法导入模块
-*/
 ```
 
 
@@ -114,6 +96,7 @@ const path = require('path')
 const webpack = require('webpack')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const CleanWebpackPlugin = require('clean-webpack-plugin')
+const ExtractTextPlugin = require("extract-text-webpack-plugin")
 
 module.exports = {
 	entry: {
@@ -138,15 +121,29 @@ module.exports = {
 				}
 			},
 			{
-				test: /\.css$/,
-				use: ['style-loader', 'css-loader']
+				test: /\.styl$/,
+				use: ExtractTextPlugin.extract({
+					use: [
+						{
+							loader: 'css-loader',
+							options: {
+								minimize: true
+							}
+						}, 
+						'postcss-loader',
+						'stylus-loader'
+					]
+				})
 			},
 			{
 				test: /\.(png|jpg|gif)$/,
 				use: [
 					{
 						loader: 'url-loader',
-						options: {limit: 20000}
+						options: {
+							limit: 10000,
+							name: 'images/[name].[hash:8].[ext]'
+						}
 					}
 				]
 			},
@@ -157,21 +154,34 @@ module.exports = {
 		]
 	},
 	plugins: [
-		new CleanWebpackPlugin(['dist/*.*', 'dist/static/*.*']), //clean dist
+		//构建时清除dist文件夹
+		new CleanWebpackPlugin(['dist/*']),
+		//生成html首页
 		new HtmlWebpackPlugin({
 			filename: 'index.html',
-			template: './src/views/index.html'
+			template: './src/views/index.html',
+			minify: {
+		        removeComments: true,
+		        collapseWhitespace: true,
+		        removeRedundantAttributes: true,
+		        useShortDoctype: true,
+		        removeEmptyAttributes: true,
+		        removeStyleLinkTypeAttributes: true,
+		        keepClosingSlash: true,
+		        minifyJS: true,
+		        minifyCSS: true,
+		        minifyURLs: true
+		    }
 		}),
+		//生成css文件
+		new ExtractTextPlugin('static/[name].[contenthash:8].css'),
 		//保持vendor hash不变
 		new webpack.HashedModuleIdsPlugin(),
 		//提取公共代码
 		new webpack.optimize.CommonsChunkPlugin({
 			name: 'vendor',
 			minChunks: function(module, count) {
-				return module.resource && /\.js$/.test(module.resource) &&
-				module.resource.indexOf(
-		        	path.join(__dirname, './node_modules')
-		        ) === 0
+		        return module.context && module.context.includes('node_modules')
 			}
 		}),
 		//提取样板，缓存vendor
@@ -179,9 +189,33 @@ module.exports = {
 			name: 'runtime',
 			chunks: ['vendor']
 		}),
+		//js文件压缩
 		new webpack.optimize.UglifyJsPlugin()
 	]
 }
+```
+
+
+### custom postcss plugins `bearcss.js`
+```js
+const postcss = require('postcss')
+
+module.exports = postcss.plugin('bearcss', (options = {}) => {
+	return function(css) {
+		css.walkRules(rule => {
+			rule.walkDecls(/^background$/, decl => {
+				//整个{...}
+				let rule = decl.parent
+				//console.log(decl.value)
+				//插入样式
+				rule.append({
+					prop: 'color',
+					value: 'red'
+				})
+			})
+		})
+	}
+})
 ```
 
 
