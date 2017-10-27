@@ -33,7 +33,7 @@ module.exports = {
 			// 	})
 			// },
 			{
-				test: /\.styl$/,
+				test: /\.(styl|css)$/,
 				use: [
 					'style-loader',
 					'css-loader',
